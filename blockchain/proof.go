@@ -1,6 +1,14 @@
 package blockchain
 
-import "math/big"
+import (
+	"bytes"
+	"crypto/sha256"
+	"encoding/binary"
+	"fmt"
+	"log"
+	"math"
+	"math/big"
+)
 
 //Proof of work steps
 //Take a block of data
@@ -13,5 +21,52 @@ const Difficulty = 12
 
 type ProofOfWork struct {
 	Block  *Block
-	BigInt *big.Int
+	Target *big.Int
+}
+
+func NewProof(b *Block) *ProofOfWork {
+	target := big.NewInt(1)
+	target.Lsh(target, uint(256-Difficulty))
+	return &ProofOfWork{Block: b, Target: target}
+}
+func ToHex(num uint64) []byte {
+	buff := new(bytes.Buffer)
+	err := binary.Write(buff, binary.BigEndian, num)
+	if err != nil {
+		log.Panic(err)
+	}
+	return buff.Bytes()
+}
+func (pow *ProofOfWork) InitData(nonce int) []byte {
+	data := bytes.Join([][]byte{
+		pow.Block.Data,
+		pow.Block.Hash,
+		ToHex(uint64(nonce)),
+		ToHex(uint64(Difficulty)),
+	}, []byte{})
+	return data
+}
+func (pow *ProofOfWork) Run() (int, []byte) {
+	var intHash big.Int
+	var hash [32]byte
+	nonce := 0
+	for nonce < math.MaxInt64 {
+		data := pow.InitData(nonce)
+		hash = sha256.Sum256(data)
+		intHash.SetBytes(hash[:])
+		if intHash.Cmp(pow.Target) == -1 {
+			break
+		} else {
+			nonce++
+		}
+	}
+	fmt.Printf("Hash %x\n\n", hash)
+	return nonce, hash[:]
+}
+
+func (pow *ProofOfWork) Validate() bool {
+	var intHash *big.Int
+	hash := pow.InitData(pow.Block.nonce)
+	intHash.SetBytes(hash[:])
+	return intHash.Cmp(pow.Target) == -1
 }
