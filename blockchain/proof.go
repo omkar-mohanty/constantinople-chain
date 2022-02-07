@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
-	"fmt"
 	"log"
 	"math"
 	"math/big"
@@ -29,7 +28,7 @@ func NewProof(b *Block) *ProofOfWork {
 	target.Lsh(target, uint(256-Difficulty))
 	return &ProofOfWork{Block: b, Target: target}
 }
-func ToHex(num uint64) []byte {
+func ToHex(num int64) []byte {
 	buff := new(bytes.Buffer)
 	err := binary.Write(buff, binary.BigEndian, num)
 	if err != nil {
@@ -40,9 +39,9 @@ func ToHex(num uint64) []byte {
 func (pow *ProofOfWork) InitData(nonce int) []byte {
 	data := bytes.Join([][]byte{
 		pow.Block.Data,
-		pow.Block.Hash,
-		ToHex(uint64(nonce)),
-		ToHex(uint64(Difficulty)),
+		pow.Block.PrevHash,
+		ToHex(int64(nonce)),
+		ToHex(int64(Difficulty)),
 	}, []byte{})
 	return data
 }
@@ -60,13 +59,13 @@ func (pow *ProofOfWork) Run() (int, []byte) {
 			nonce++
 		}
 	}
-	fmt.Printf("Hash %x\n\n", hash)
 	return nonce, hash[:]
 }
 
 func (pow *ProofOfWork) Validate() bool {
-	var intHash *big.Int
-	hash := pow.InitData(pow.Block.nonce)
+	var intHash big.Int
+	data := pow.InitData(pow.Block.Nonce)
+	hash := sha256.Sum256(data)
 	intHash.SetBytes(hash[:])
 	return intHash.Cmp(pow.Target) == -1
 }

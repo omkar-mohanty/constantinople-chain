@@ -10,7 +10,7 @@ type Block struct {
 	Hash     []byte
 	Data     []byte
 	PrevHash []byte
-	nonce    int
+	Nonce    int
 }
 
 func CreateBlock(data string, prevHash []byte) *Block {
@@ -18,7 +18,7 @@ func CreateBlock(data string, prevHash []byte) *Block {
 	pow := NewProof(block)
 	nonce, hash := pow.Run()
 	block.Hash = hash[:]
-	block.nonce = nonce
+	block.Nonce = nonce
 	return block
 }
 
@@ -43,6 +43,6 @@ func Dserealize(data []byte) *Block {
 
 func HandleErr(err error) {
 	if err != nil {
-		log.Panic(err)
+		log.Fatalf("Error: %s ", err.Error())
 	}
 }
