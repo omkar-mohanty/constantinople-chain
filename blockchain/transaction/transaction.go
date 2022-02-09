@@ -5,16 +5,15 @@ import (
 	"crypto/sha256"
 	"encoding/gob"
 	"fmt"
-
-	"github.com/omkar-mohanty/golang-blockchain/blockchain"
+	"log"
 )
 
 type Transaction struct {
 	ID      []byte
 	Inputs  []TxInput
-	Outputs []TxOut
+	Outputs []TxOutput
 }
-type TxOut struct {
+type TxOutput struct {
 	Value  int
 	PubKey string
 }
@@ -29,17 +28,17 @@ func (txn *Transaction) SetId() {
 	var hash [32]byte
 	encoder := gob.NewEncoder(&encoded)
 	err := encoder.Encode(txn)
-	blockchain.HandleErr(err)
+	Handle(err)
 	hash = sha256.Sum256(encoded.Bytes())
 	txn.ID = hash[:]
 }
-func CoinbaseTx(to, from string) *Transaction {
-	if from == "" {
-		from = fmt.Sprintf("%s", to)
+func CoinbaseTx(to, data string) *Transaction {
+	if data == "" {
+		data = fmt.Sprintf("%s", to)
 	}
-	txIn := TxInput{[]byte{}, 100, from}
-	txOut := TxOut{100, to}
-	txn := Transaction{nil, []TxInput{txIn}, []TxOut{txOut}}
+	txIn := TxInput{[]byte{}, 100, data}
+	txOut := TxOutput{100, to}
+	txn := Transaction{nil, []TxInput{txIn}, []TxOutput{txOut}}
 	txn.SetId()
 	return &txn
 }
@@ -49,6 +48,11 @@ func (txn *Transaction) IsCoinbase() bool {
 func (in *TxInput) CanUnlock(data string) bool {
 	return in.Sig == data
 }
-func (out *TxOut) CanBeUnlocked(data string) bool {
+func (out *TxOutput) CanBeUnlocked(data string) bool {
 	return out.PubKey == data
+}
+func Handle(err error) {
+	if err != nil {
+		log.Panic(err)
+	}
 }
