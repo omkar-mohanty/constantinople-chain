@@ -1,10 +1,10 @@
-package transaction
+package blockchain
 
 import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/gob"
-	"fmt"
+	"encoding/hex"
 	"log"
 )
 
@@ -34,9 +34,9 @@ func (txn *Transaction) SetId() {
 }
 func CoinbaseTx(to, data string) *Transaction {
 	if data == "" {
-		data = fmt.Sprintf("%s", to)
+		data = to
 	}
-	txIn := TxInput{[]byte{}, 100, data}
+	txIn := TxInput{[]byte{}, -1, data}
 	txOut := TxOutput{100, to}
 	txn := Transaction{nil, []TxInput{txIn}, []TxOutput{txOut}}
 	txn.SetId()
@@ -50,6 +50,32 @@ func (in *TxInput) CanUnlock(data string) bool {
 }
 func (out *TxOutput) CanBeUnlocked(data string) bool {
 	return out.PubKey == data
+}
+func NewTransaction(
+	from, to string,
+	amount int,
+	chain *Blockchain) *Transaction {
+	var inputs []TxInput
+	var outputs []TxOutput
+	acc, validOutputs := chain.FindSpendabaleOutputs(from, amount)
+	if acc < amount {
+		log.Panic("Insufficient funds in account")
+	}
+	for txid, outs := range validOutputs {
+		txID, err := hex.DecodeString(txid)
+		HandleErr(err)
+		for _, out := range outs {
+			input := TxInput{txID, out, from}
+			inputs = append(inputs, input)
+		}
+	}
+	outputs = append(outputs, TxOutput{amount, to})
+	if acc > amount {
+		outputs = append(outputs, TxOutput{acc - amount, from})
+	}
+	txn := &Transaction{nil, inputs, outputs}
+	txn.SetId()
+	return txn
 }
 func Handle(err error) {
 	if err != nil {

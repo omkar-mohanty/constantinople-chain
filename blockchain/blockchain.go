@@ -7,7 +7,6 @@ import (
 	"runtime"
 
 	"github.com/dgraph-io/badger"
-	"github.com/omkar-mohanty/golang-blockchain/blockchain/transaction"
 )
 
 const (
@@ -53,7 +52,7 @@ func (chain *Blockchain) Iterator() func() *Block {
 		return block
 	}
 }
-func (chain *Blockchain) AddBlock(transactions []*transaction.Transaction) {
+func (chain *Blockchain) AddBlock(transactions []*Transaction) {
 	var lastHash []byte
 
 	err := chain.Database.View(func(txn *badger.Txn) error {
@@ -109,7 +108,7 @@ func InitBlockChain(address string) *Blockchain {
 	db, err := badger.Open(opt)
 	HandleErr(err)
 	err = db.Update(func(txn *badger.Txn) error {
-		cbtx := transaction.CoinbaseTx(address, genesisData)
+		cbtx := CoinbaseTx(address, genesisData)
 		genesis := Genesis(cbtx)
 		fmt.Println("Genesis created")
 		err = txn.Set(genesis.Hash, genesis.Serealize())
@@ -121,8 +120,8 @@ func InitBlockChain(address string) *Blockchain {
 	return &Blockchain{lastHash, db}
 }
 
-func (chain *Blockchain) FindUnspentTransactions(address string) []transaction.Transaction {
-	var unspentTxs []transaction.Transaction
+func (chain *Blockchain) FindUnspentTransactions(address string) []Transaction {
+	var unspentTxs []Transaction
 	spentTXOs := make(map[string][]int)
 	next := chain.Iterator()
 	for {
@@ -157,4 +156,37 @@ func (chain *Blockchain) FindUnspentTransactions(address string) []transaction.T
 		}
 	}
 	return unspentTxs
+}
+
+func (chain *Blockchain) FindUTXO(address string) []TxOutput {
+	var UTXOs []TxOutput
+	unspentTxns := chain.FindUnspentTransactions(address)
+	for _, unspentTxn := range unspentTxns {
+		for _, output := range unspentTxn.Outputs {
+			if output.CanBeUnlocked(address) {
+				UTXOs = append(UTXOs, output)
+			}
+		}
+	}
+	return UTXOs
+}
+
+func (chain *Blockchain) FindSpendabaleOutputs(address string, amount int) (int, map[string][]int) {
+	unspentOuts := make(map[string][]int)
+	accumulated := 0
+	unspentTxn := chain.FindUnspentTransactions(address)
+Work:
+	for _, txn := range unspentTxn {
+		txId := hex.EncodeToString(txn.ID)
+		for _, output := range txn.Outputs {
+			if output.CanBeUnlocked(address) && accumulated < amount {
+				accumulated += output.Value
+				unspentOuts[txId] = append(unspentOuts[txId], output.Value)
+				if accumulated >= amount {
+					break Work
+				}
+			}
+		}
+	}
+	return accumulated, unspentOuts
 }

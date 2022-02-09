@@ -5,18 +5,16 @@ import (
 	"crypto/sha256"
 	"encoding/gob"
 	"log"
-
-	"github.com/omkar-mohanty/golang-blockchain/blockchain/transaction"
 )
 
 type Block struct {
 	Hash         []byte
-	Transactions []*transaction.Transaction
+	Transactions []*Transaction
 	PrevHash     []byte
 	Nonce        int
 }
 
-func CreateBlock(transactions []*transaction.Transaction, prevHash []byte) *Block {
+func CreateBlock(transactions []*Transaction, prevHash []byte) *Block {
 	block := &Block{[]byte{}, transactions, prevHash, 0}
 	pow := NewProof(block)
 	nonce, hash := pow.Run()
@@ -25,8 +23,8 @@ func CreateBlock(transactions []*transaction.Transaction, prevHash []byte) *Bloc
 	return block
 }
 
-func Genesis(coinbase *transaction.Transaction) *Block {
-	return CreateBlock([]*transaction.Transaction{coinbase}, []byte{})
+func Genesis(coinbase *Transaction) *Block {
+	return CreateBlock([]*Transaction{coinbase}, []byte{})
 }
 func (b *Block) Serealize() []byte {
 	var res bytes.Buffer
