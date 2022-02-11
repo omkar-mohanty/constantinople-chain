@@ -144,15 +144,15 @@ func (chain *Blockchain) FindUnspentTransactions(address string) []Transaction {
 					unspentTxs = append(unspentTxs, *txs)
 				}
 			}
-			for _, in := range txs.Inputs {
-				if !txs.IsCoinbase() {
+			if !txs.IsCoinbase() {
+				for _, in := range txs.Inputs {
 					if in.CanUnlock(address) {
 						inTxId := hex.EncodeToString(in.ID)
 						spentTXOs[inTxId] = append(spentTXOs[inTxId], in.Out)
 					}
 				}
-
 			}
+
 		}
 	}
 	return unspentTxs
@@ -178,10 +178,10 @@ func (chain *Blockchain) FindSpendabaleOutputs(address string, amount int) (int,
 Work:
 	for _, txn := range unspentTxn {
 		txId := hex.EncodeToString(txn.ID)
-		for _, output := range txn.Outputs {
+		for outIdx, output := range txn.Outputs {
 			if output.CanBeUnlocked(address) && accumulated < amount {
 				accumulated += output.Value
-				unspentOuts[txId] = append(unspentOuts[txId], output.Value)
+				unspentOuts[txId] = append(unspentOuts[txId], outIdx)
 				if accumulated >= amount {
 					break Work
 				}
