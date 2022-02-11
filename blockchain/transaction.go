@@ -13,15 +13,6 @@ type Transaction struct {
 	Inputs  []TxInput
 	Outputs []TxOutput
 }
-type TxOutput struct {
-	Value  int
-	PubKey string
-}
-type TxInput struct {
-	ID  []byte
-	Out int
-	Sig string
-}
 
 func (txn *Transaction) SetId() {
 	var encoded bytes.Buffer
@@ -37,19 +28,13 @@ func CoinbaseTx(to, data string) *Transaction {
 		data = to
 	}
 	txIn := TxInput{[]byte{}, -1, data}
-	txOut := TxOutput{100, to}
+	txOut := TxOutput{1000000, to}
 	txn := Transaction{nil, []TxInput{txIn}, []TxOutput{txOut}}
 	txn.SetId()
 	return &txn
 }
 func (txn *Transaction) IsCoinbase() bool {
 	return len(txn.Inputs) == 0 && len(txn.Inputs[0].ID) == 0 && txn.Inputs[0].Out == -1
-}
-func (in *TxInput) CanUnlock(data string) bool {
-	return in.Sig == data
-}
-func (out *TxOutput) CanBeUnlocked(data string) bool {
-	return out.PubKey == data
 }
 func NewTransaction(
 	from, to string,
