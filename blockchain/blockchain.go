@@ -20,11 +20,6 @@ type Blockchain struct {
 	Database *badger.DB
 }
 
-type BlockchainIterator struct {
-	CurrentHash []byte
-	Database    *badger.DB
-}
-
 func DBexists() bool {
 	if _, err := os.Stat(dbFile); os.IsNotExist(err) {
 		return false
