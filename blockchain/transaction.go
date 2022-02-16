@@ -62,6 +62,20 @@ func NewTransaction(
 	txn.SetId()
 	return txn
 }
+func (txn *Transaction) Serealize() []byte {
+	var buffer bytes.Buffer
+	encoder := gob.NewEncoder(&buffer)
+	err := encoder.Encode(txn)
+	Handle(err)
+	return buffer.Bytes()
+}
+func (txn *Transaction) Hash() []byte {
+	var hash [32]byte
+	txCopy := *txn
+	txCopy.ID = []byte{}
+	hash = sha256.Sum256(txCopy.Serealize())
+	return hash[:]
+}
 func Handle(err error) {
 	if err != nil {
 		log.Panic(err)
